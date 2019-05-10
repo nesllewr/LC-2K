@@ -5,22 +5,25 @@
 
 typedef struct {
 	char label[MAXLINELENGTH],  opcode[MAXLINELENGTH],  arg0[MAXLINELENGTH], arg1[MAXLINELENGTH], arg2[MAXLINELENGTH];
-	int machine;
+	
 }Instruction;
 
 char *arrLabel[MAXLINELENGTH];
+int machine[MAXLINELENGTH];
 
 Instruction is[MAXLINELENGTH];
 
 int lineNum = 0, labelNum=0;
 int readAndParse(FILE *, char *, char *, char *, char *, char *);
 int isNumber(char *);
-int isInstruction(char *);
+int isInstruction(char *, int idx);
 int rType(int);
 int iType(int);
 int jType(int);
 int oType(int);
+int fill(int);
 int checkLabel(char *);
+int findLabel(char*);
 
 int main(int argc, char *argv[]) { 
 
@@ -56,31 +59,43 @@ int main(int argc, char *argv[]) {
 	int i;
 
 	for( i = 0; i < lineNum; i++){
-		switch(isInstruction(is[i].opcode)){
-			
+		switch(isInstruction(is[i].opcode, i)){
 			case 0:
 				rType(i);
+				break;
 			case 1:
 				rType(i);
+				break;
+			case 2:
+				iType(i);
+				break;
+			case 3:
+				iType(i);
+				break;
+			case 4:
+				iType(i);
+				break;
+			case 5:
+				jType(i);
+				break;
+			case 6:
+				oType(i);
+				break;
+			case 7:
+				oType(i);
+				break;
+			case 8:
+				fill(i);
+				break;
+				
 			default :
-				rType(i);
-			// case 2:
-			// case 3:
-			// case 4:
-			// case 5:
-			// case 6:
-			// case 7:
-
+				printf("error : nonexist opcode\n");
+				exit(1);
 			
 		}
-		fprintf(outFilePtr, "%d\n", is[i].machine);
+		fprintf(outFilePtr, "is[%d]: %d\n", i,machine[i]);
 
-	}
-
-	// for(i=0;i<lineNum;i++){
-	// 	printf("label %s\n", is[i].label );
-	// }
-   
+	}   
 	fclose(outFilePtr);
     return(0); 
 }
@@ -126,45 +141,121 @@ int isNumber(char *string) {    /* return 1 if opcode is a number */
 	return( (sscanf(string, "%d", &i)) == 1); 
 }
 
-
-int isInstruction(char *opcode) {
+int isInstruction(char *opcode, int i) {
 	
-	if(strstr(opcode,"add")!=NULL)  return 0;
-	else if(strstr(opcode,"nor")!=NULL) return 1;
-	else if(strstr(opcode,"lw")!=NULL) return 2;
-	else if(strstr(opcode,"sw")!=NULL) return 3;
-	else if(strstr(opcode,"beq")!=NULL) return 4;
-	else if(strstr(opcode,"jalr")!=NULL) return 5;
-	else if(strstr(opcode,"halt")!=NULL) return 6;
-	else if(strstr(opcode,"noop")!=NULL) return 7;
+	if(strstr(opcode,"add")!=NULL) {
+		machine[i] = 0;
+		return 0;
+	} 
+	else if(strstr(opcode,"nor")!=NULL){
+		machine[i] = 1 << 22;
+		return 1;
+	} 
+	else if(strstr(opcode,"lw")!=NULL) {
+		machine[i] = 2 << 22;
+		return 2;
+	}
+	else if(strstr(opcode,"sw")!=NULL) {
+		machine[i] = 3 << 22;
+		return 3;
+	}
+	else if(strstr(opcode,"beq")!=NULL) {
+		machine[i] = 4 << 22;
+		return 4;
+	}
+	else if(strstr(opcode,"jalr")!=NULL){
+		machine[i] = 5 << 22;
+		return 5;
+	} 
+	else if(strstr(opcode,"halt")!=NULL) {
+		machine[i] = 6 << 22;
+		return 6;
+	}
+	else if(strstr(opcode,"noop")!=NULL){
+		machine[i] = 7 << 22;
+		return 7;
+	} 
+	else if(strstr(opcode, ".fill")!=NULL){
+		return 8;
+	}
 	else return -1;
 }
 
 int rType(int idx) {
 	int result;
 	int regA, regB, destReg;
+
 	if((regA = isNumber(is[idx].arg0))!=1){
-		regA = checkLabel(is[idx].arg0);
-		regA = isNumber(is[regA].arg0);
+		regA = findLabel(is[idx].arg0);
 	}
+	else sscanf(is[idx].arg0, "%d", &regA);
+
 	if((regB = isNumber(is[idx].arg1))!=1){
-		regB = checkLabel(is[idx].arg1);
-		regB = isNumber(is[regB].arg1);
+		regB = findLabel(is[idx].arg1);
 	}
+	else sscanf(is[idx].arg1, "%d", &regB);
+
 	if((destReg = isNumber(is[idx].arg2))!=1){
-		destReg = checkLabel(is[idx].arg2);
-		destReg = isNumber(is[destReg].arg2);
+		destReg = findLabel(is[idx].arg2);
 	}
-	// regB = isNumber(is[idx].arg1);
-	// destReg = isNumber(is[idx].arg2);
-	// if(type==0){
-		result = regA << 19 ;
-		result += regB << 16;
-		result += destReg;
-		is[idx].machine = result;
-		return 0;
-	// }
-	// else if(type==1){}
+	else sscanf(is[idx].arg2, "%d", &destReg);
+
+	result = regA << 19 ;
+	result += regB << 16;
+	result += destReg;
+	machine[idx] += result;
+
+	return 0;
+}
+int iType(int idx){
+	int result;
+	int regA, regB, offset;
+
+	if((regA = isNumber(is[idx].arg0))!=1){
+		regA = findLabel(is[idx].arg0);
+	}
+	else sscanf(is[idx].arg0, "%d", &regA);
+
+	if((regB = isNumber(is[idx].arg1))!=1){
+		regB = findLabel(is[idx].arg1);
+	}
+	else sscanf(is[idx].arg1, "%d", &regB);
+
+	if((offset = isNumber(is[idx].arg2))!=1){
+		offset = findLabel(is[idx].arg2);
+	}
+	else {
+		sscanf(is[idx].arg2, "%d", &offset);
+		if(offset > 32767 && offset < -32768){
+			printf("error : wrong range offest\n");
+			exit(1);
+		}
+	}
+	result = regA << 19 ;
+	result += regB << 16;
+	result += offset;
+	machine[idx] += result;
+
+	return 0;
+}
+int jType(int idx){
+	machine[idx] =0;
+
+	return 0;
+}
+int oType(int idx){
+	return 0;
+}
+int fill(int idx){
+	int i;
+	if(isNumber(is[idx].arg0)!=1){
+		machine[idx] = findLabel(is[idx].arg0);
+	}
+	else {
+		sscanf(is[idx].arg0, "%d", &i);
+		machine[idx] = i;
+	} 
+	return 0;
 }
 
 int checkLabel(char *string){
@@ -173,4 +264,11 @@ int checkLabel(char *string){
   	if(strcmp(string, arrLabel[i]) == 0) return i;
   }
   return 0;
+}
+
+int findLabel(char *string){
+	int i;
+	for(i=0;i<lineNum;i++){
+		if(strcmp(is[i].label, string) == 0) return i;
+	}
 }
