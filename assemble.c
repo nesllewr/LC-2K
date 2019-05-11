@@ -18,7 +18,7 @@ int readAndParse(FILE *, char *, char *, char *, char *, char *);
 int isNumber(char *);
 int isInstruction(char *, int idx);
 int rType(int);
-int iType(int);
+int iType(int, int);
 int jType(int);
 int oType(int);
 int fill(int);
@@ -67,13 +67,13 @@ int main(int argc, char *argv[]) {
 				rType(i);
 				break;
 			case 2:
-				iType(i);
+				iType(i,2);
 				break;
 			case 3:
-				iType(i);
+				iType(i,3);
 				break;
 			case 4:
-				iType(i);
+				iType(i,4);
 				break;
 			case 5:
 				jType(i);
@@ -89,11 +89,12 @@ int main(int argc, char *argv[]) {
 				break;
 				
 			default :
-				printf("error : nonexist opcode\n");
+				printf("error : unrecognized opcode\n");
+				printf("%s\n", is[i].opcode);
 				exit(1);
 			
 		}
-		fprintf(outFilePtr, "is[%d]: %d\n", i,machine[i]);
+		fprintf(outFilePtr, "%d\n", machine[i]);
 
 	}   
 	fclose(outFilePtr);
@@ -123,7 +124,7 @@ int readAndParse(FILE *inFilePtr, char *label, char *opcode, char *arg0, char *a
 		sscanf(ptr, "%*[\t\n\r ]%[^\t\n\r ]%*[\t\n\r ]%[^\t\n\r ]%*[\t\n\r ]%[^\t\n\r ]%*[\t\n\r ]%[^\t\n\r ]", is[lineNum].opcode, is[lineNum].arg0, is[lineNum].arg1, is[lineNum].arg2);   
 		
 		if(is[lineNum].label[0] != '\0'){
-			if(checkLabel(is[lineNum].label)!=0){
+			if(checkLabel(is[lineNum].label)==1){
 				printf("error : same label\n");
 				exit(1);
 			}
@@ -207,7 +208,7 @@ int rType(int idx) {
 
 	return 0;
 }
-int iType(int idx){
+int iType(int idx, int type){
 	int result;
 	int regA, regB, offset;
 
@@ -223,14 +224,21 @@ int iType(int idx){
 
 	if((offset = isNumber(is[idx].arg2))!=1){
 		offset = findLabel(is[idx].arg2);
+		
+		if(type==4){
+			offset = offset - idx;
+		}
+		if(offset < 0 ) offset = (2 << 15) + offset -1;
 	}
 	else {
 		sscanf(is[idx].arg2, "%d", &offset);
 		if(offset > 32767 && offset < -32768){
-			printf("error : wrong range offest\n");
+			printf("error : wrong range offset\n");
 			exit(1);
 		}
+		if(offset < 0 ) offset = (2 << 15) + offset -1;
 	}
+	//printf("Itype[%d] : %d %d %d \n", idx, regA, regB, offset);
 	result = regA << 19 ;
 	result += regB << 16;
 	result += offset;
@@ -239,7 +247,23 @@ int iType(int idx){
 	return 0;
 }
 int jType(int idx){
-	machine[idx] =0;
+	int result;
+	int regA, regB;
+
+	if((regA = isNumber(is[idx].arg0))!=1){
+		regA = findLabel(is[idx].arg0);
+	}
+	else sscanf(is[idx].arg0, "%d", &regA);
+
+	if((regB = isNumber(is[idx].arg1))!=1){
+
+		regB = findLabel(is[idx].arg1);
+	}
+	else sscanf(is[idx].arg1, "%d", &regB);
+
+	result = regA << 19 ;
+	result += regB << 16;
+	machine[idx] += result;
 
 	return 0;
 }
@@ -261,7 +285,7 @@ int fill(int idx){
 int checkLabel(char *string){
   int i;
   for(i=0;i<labelNum;i++){
-  	if(strcmp(string, arrLabel[i]) == 0) return i;
+  	if(strcmp(string, arrLabel[i]) == 0) return 1;
   }
   return 0;
 }
@@ -271,4 +295,6 @@ int findLabel(char *string){
 	for(i=0;i<lineNum;i++){
 		if(strcmp(is[i].label, string) == 0) return i;
 	}
+	printf("error : wrong label\n");
+	exit(1);
 }
