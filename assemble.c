@@ -53,11 +53,11 @@ int main(int argc, char *argv[]) {
 	}  
 
 	if (! (readAndParse(inFilePtr, label, opcode, arg0, arg1, arg2) )) {
+
     }    
 
 
 	int i;
-
 	for( i = 0; i < lineNum; i++){
 		switch(isInstruction(is[i].opcode, i)){
 			case 0:
@@ -221,24 +221,26 @@ int iType(int idx, int type){
 		regB = findLabel(is[idx].arg1);
 	}
 	else sscanf(is[idx].arg1, "%d", &regB);
-
+	
 	if((offset = isNumber(is[idx].arg2))!=1){
 		offset = findLabel(is[idx].arg2);
-		
 		if(type==4){
 			offset = offset - idx;
+			if(offset > -1) offset = offset -1;
+			if( offset < 0 ) offset = (2 << 15) + offset -1;
 		}
-		if(offset < 0 ) offset = (2 << 15) + offset -1;
 	}
 	else {
-		sscanf(is[idx].arg2, "%d", &offset);
-		if(offset > 32767 && offset < -32768){
-			printf("error : wrong range offset\n");
-			exit(1);
-		}
-		if(offset < 0 ) offset = (2 << 15) + offset -1;
+		sscanf(is[idx].arg2, "%d", &offset);		
+		if( offset < 0 && offset > -32769) offset = (2 << 15) + offset;
 	}
-	//printf("Itype[%d] : %d %d %d \n", idx, regA, regB, offset);
+
+	if(offset > 32767 && offset < -32768){
+		printf("error : wrong range offset\n");
+		exit(1);
+	}
+	
+	//printf("offset : %d\n", offset);
 	result = regA << 19 ;
 	result += regB << 16;
 	result += offset;
@@ -278,7 +280,11 @@ int fill(int idx){
 	else {
 		sscanf(is[idx].arg0, "%d", &i);
 		machine[idx] = i;
-	} 
+	}
+	if(machine[idx] > 2147483647||machine[idx]<-2147483648){
+		printf("error : out of .fill range\n");
+		exit(1);
+	}
 	return 0;
 }
 
@@ -293,7 +299,8 @@ int checkLabel(char *string){
 int findLabel(char *string){
 	int i;
 	for(i=0;i<lineNum;i++){
-		if(strcmp(is[i].label, string) == 0) return i;
+		if(strcmp(is[i].label, string) == 0)
+			return i;
 	}
 	printf("error : wrong label\n");
 	exit(1);

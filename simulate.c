@@ -100,7 +100,6 @@ int main(int argc, char *argv[]) {
 				break;
 			default :
 				printf("error : unrecognized opcode\n");
-				//printf("%s\n", opcode);
 				exit(1);			
 		}
 		printState(&state);
@@ -146,18 +145,19 @@ void iType(Instruction is, int context){
 		state.reg[is.regB] = state.mem[offset + state.reg[is.regA]];
 	}
 	else if(is.opcode==sw){
-		state.reg[is.regA] = state.mem[offset + state.reg[is.regB]];
+		state.mem[offset + state.reg[is.regA]] = state.reg[is.regB] ;
 	}
 	else if(is.opcode==beq){
 		if(state.reg[is.regA]==state.reg[is.regB]){
 			state.pc += offset;
 		}
 
+
 	}
 }
 void jType(Instruction is, int context){
 
-	state.reg[is.regB] = state.pc +1;
+	state.reg[is.regB] = state.pc;
 	state.pc = state.reg[is.regA];
 
 }
