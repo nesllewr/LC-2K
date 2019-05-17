@@ -94,7 +94,11 @@ int main(int argc, char *argv[]) {
 				exit(1);
 			
 		}
-		fprintf(outFilePtr, "%d\n", machine[i]);
+		if(i < lineNum - 1)
+			fprintf(outFilePtr, "%d\n", machine[i]);
+		else
+			fprintf(outFilePtr, "%d", machine[i]);
+
 
 	}   
 	fclose(outFilePtr);
@@ -109,10 +113,10 @@ int readAndParse(FILE *inFilePtr, char *label, char *opcode, char *arg0, char *a
 	
 	while (fgets(line, MAXLINELENGTH, inFilePtr) != NULL) {        /* reached end of file */     
 		
-		if (strchr(line, '\n') == NULL) {        /* line too long */      
+		if (!feof(inFilePtr) && strchr(line, '\n') == NULL) {        /* line too long */      
 			printf("error: line too long\n");     
 			exit(1);
-	    }   
+	    }  
 		ptr = line;   
 
 		memset(is[lineNum].label, '\0', MAXLINELENGTH);
@@ -128,11 +132,14 @@ int readAndParse(FILE *inFilePtr, char *label, char *opcode, char *arg0, char *a
 				printf("error : same label\n");
 				exit(1);
 			}
+			if(is[lineNum].label[7]!='\0'){
+				printf("error : too long label\n");
+				exit(1);	
+			}
 			arrLabel[labelNum++] = is[lineNum].label;
 		}	
 		//is[lineNum].index = lineNum;
 		lineNum++;
-
     }   
 	return 1;
 }
@@ -232,10 +239,10 @@ int iType(int idx, int type){
 	}
 	else {
 		sscanf(is[idx].arg2, "%d", &offset);		
-		if( offset < 0 && offset > -32769) offset = (2 << 15) + offset;
+		if( offset < 0 && offset > -65536) offset = (2 << 15) + offset;
 	}
 
-	if(offset > 32767 && offset < -32768){
+	if(offset > 65535 || offset < -65536){
 		printf("error : wrong range offset\n");
 		exit(1);
 	}

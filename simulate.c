@@ -63,7 +63,7 @@ int main(int argc, char *argv[]) {
 	while(1){
 
 		if(state.pc < 0 || state.pc > NUMMEMORY-1){
-			printf("error : out of range\n");
+			printf("error : out of PC range\n");
 			exit(1);
 		}
 
