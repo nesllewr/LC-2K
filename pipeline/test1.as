@@ -1,0 +1,10 @@
+	lw 		0 	1 	7
+	add 	1 	1 	2
+	add 	2 	2 	3
+	add 	3 	3 	3
+	add 	2 	3 	1
+	noop	0	0	0
+	halt	0	0	0
+	add 	0 	0 	20
+	add 	0 	0 	1
+	add 	0 	0 	100

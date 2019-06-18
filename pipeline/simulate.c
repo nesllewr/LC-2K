@@ -163,6 +163,7 @@ void run(stateType *state, stateType *newState)
 		newState->EXMEM.instr = state->IDEX.instr;
 		newState->EXMEM.branchTarget = state->IDEX.pcPlus1 + state->IDEX.offset;
 		int muxRegA = state->IDEX.readRegA , muxRegB = state->IDEX.readRegB;
+		
 		forward(state, &muxRegA, &muxRegB);
 		
 		if (opcode(state->IDEX.instr) == ADD) {
@@ -230,45 +231,40 @@ void forward(stateType *state, int *muxA, int *muxB){
     return;
 
   int preIS, destReg;
+
+  //check WBEND hazard
   preIS = opcode(state->WBEND.instr);
   if (preIS == LW) {
     destReg = field1(state->WBEND.instr);
-    if (regA == destReg)
-      *muxA = state->WBEND.writeData;
-    if (regB == destReg)
-      *muxB = state->WBEND.writeData;
+    if (regA == destReg) *muxA = state->WBEND.writeData;
+    if (regB == destReg) *muxB = state->WBEND.writeData;
   }
   else if (preIS == ADD || preIS == NOR) {
     destReg = field2(state->WBEND.instr);
-    if (regA == destReg)
-      *muxA = state->WBEND.writeData;
-    if (regB == destReg)
-        *muxB = state->WBEND.writeData;
+    if (regA == destReg) *muxA = state->WBEND.writeData;
+    if (regB == destReg) *muxB = state->WBEND.writeData;
   }
 
+  //check MEMWB hazard
   preIS = opcode(state->MEMWB.instr);
   if (preIS == LW) {
     destReg = field1(state->MEMWB.instr);
-    if (regA == destReg)
-      *muxA = state->MEMWB.writeData;
-    if (regB == destReg)
-      *muxB = state->MEMWB.writeData;
+    if (regA == destReg) *muxA = state->MEMWB.writeData;
+    if (regB == destReg) *muxB = state->MEMWB.writeData;
   }
   else if (preIS == ADD || preIS == NOR) {
     destReg = field2(state->MEMWB.instr);
-    if (regA == destReg)
-      *muxA = state->MEMWB.writeData;
-    if (regB == destReg)
-      *muxB = state->MEMWB.writeData;
+    if (regA == destReg) *muxA = state->MEMWB.writeData;
+    if (regB == destReg) *muxB = state->MEMWB.writeData;
   }
 
+
+  //check EXMEM hazard
   preIS = opcode(state->EXMEM.instr);
   if (preIS == ADD || preIS == NOR) {
     destReg = field2(state->EXMEM.instr);
-    if (regA == destReg)
-      *muxA = state->EXMEM.aluResult;
-    if (regB == destReg)
-      *muxB = state->EXMEM.aluResult;
+    if (regA == destReg) *muxA = state->EXMEM.aluResult;
+    if (regB == destReg) *muxB = state->EXMEM.aluResult;
   }
 
 }
